@@ -9,35 +9,27 @@ from certbot.cli import HelpfulArgumentParser
 class TestScanningFlags(unittest.TestCase):
     '''Test the prescan_for_flag method of HelpfulArgumentParser'''
     def test_prescan_no_help_flag(self):
-        helpful_parser = HelpfulArgumentParser(['run'], None,
+        helpful_parser = HelpfulArgumentParser(['run'], {},
                                                detect_defaults=False)
         detected_flag = helpful_parser.prescan_for_flag('--help',
                                                         ['all', 'certonly'])
-        self.assertFalse(not detected_flag)
+        self.assertFalse(detected_flag)
         detected_flag = helpful_parser.prescan_for_flag('-h',
                                                         ['all, certonly'])
-        self.assertFalse(not detected_flag)
+        self.assertFalse(detected_flag)
 
     def test_prescan_unvalid_topic(self):
-        helpful_parser = HelpfulArgumentParser(['--help', 'potato'], None,
+        helpful_parser = HelpfulArgumentParser(['--help', 'all'], {},
                                                detect_defaults=False)
         detected_flag = helpful_parser.prescan_for_flag('--help',
-                                                    helpful_parser.help_topics)
+                                                    ['potato'])
         self.assertIs(detected_flag, True)
-        self.assertTrue('potato' not in detected_flag)
-        detected_flag = helpful_parser.prescan_for_flag('-h')
+        detected_flag = helpful_parser.prescan_for_flag('-h',
                                                     helpful_parser.help_topics)
         self.assertFalse(detected_flag)
 
-    def test_prescan_no_topics(self):
-        helpful_parser = HelpfulArgumentParser(['-h'], None,
-                                               detect_defaults=False)
-        detected_flag = helpful_parser.prescan_for_flag('-h',
-                                                    helpful_parser.help_topics)
-        self.assertIs(detected_flag, True)
-
     def test_prescan_valid_topic(self):
-        helpful_parser = HelpfulArgumentParser(['-h', 'all'], None,
+        helpful_parser = HelpfulArgumentParser(['-h', 'all'], {},
                                                detect_defaults=False)
         detected_flag = helpful_parser.prescan_for_flag('-h',
                                                     helpful_parser.help_topics)
@@ -46,7 +38,8 @@ class TestScanningFlags(unittest.TestCase):
                                                     helpful_parser.help_topics)
         self.assertFalse(detected_flag)
 
-    def test_prescan_for_flag_wrong_topic(self):
-        helpful_parser = HelpfulArgumentParser(['--help', 'potato'], None,
-                                               detect_defaults=False)
-        self.assert()
+
+
+
+if __name__ == '__main__':
+    unittest.main() # pragma: no cover
