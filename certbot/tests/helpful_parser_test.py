@@ -2,9 +2,9 @@
 import unittest
 
 from certbot.cli import HelpfulArgumentParser
-
-
-
+from certbot import errors
+from certbot import constants
+from certbot.cli import _DomainsAction
 
 class TestScanningFlags(unittest.TestCase):
     '''Test the prescan_for_flag method of HelpfulArgumentParser'''
@@ -67,6 +67,7 @@ class TestDetermineVerbs(unittest.TestCase):
 
 
 class TestAdd(unittest.TestCase):
+    '''Tests for add method in HelpfulArgumentParser'''
     def test_add_trivial_argument(self):
         arg_parser = HelpfulArgumentParser(['run'], {})
         arg_parser.add(None, "--hello-world")
@@ -79,11 +80,12 @@ class TestAdd(unittest.TestCase):
         arg_parser = HelpfulArgumentParser(['--help', 'run'], {})
         arg_parser.add(
                 [None, "run", "certonly", "register"],
-                "--eab-kid", dest="eab_kid",
+                "--eab-kid", dest="eab_kid", action="store",
                 metavar="EAB_KID",
                 help="Key Identifier for External Account Binding")
         parsed_args = arg_parser.parser.parse_args(["--eab-kid", None])
         self.assertIs(parsed_args.eab_kid, None)
+        self.assertTrue(hasattr(parsed_args, 'eab_kid'))
 
 
 class TestAddGroup(unittest.TestCase):
@@ -110,6 +112,81 @@ class TestAddGroup(unittest.TestCase):
         arg_parser.add_group("certonly", description="description of certonly")
         with self.assertRaises(KeyError):
             arg_parser.groups["certonly"]
+
+class TestParseArgsErrors(unittest.TestCase):
+    '''Tests for errors that should be met for some cases in parse_args method
+    in HelpfulArgumentParser'''
+    def test_parse_args_renew_force_interactive(self):
+        arg_parser = HelpfulArgumentParser(['renew', '--force-interactive'],
+                                           {})
+        arg_parser.add(
+            None, constants.FORCE_INTERACTIVE_FLAG, action="store_true")
+
+        with self.assertRaises(errors.Error):
+            arg_parser.parse_args()
+
+    def test_parse_args_non_interactive_and_force_interactive(self):
+        arg_parser = HelpfulArgumentParser(['--force-interactive',
+                                            '--non-interactive'], {})
+        arg_parser.add(
+            None, constants.FORCE_INTERACTIVE_FLAG, action="store_true")
+        arg_parser.add(
+            None, "--non-interactive", dest="noninteractive_mode",
+            action="store_true"
+        )
+
+        with self.assertRaises(errors.Error):
+            arg_parser.parse_args()
+
+    def test_parse_args_subset_names_wildcard_domain(self):
+        arg_parser = HelpfulArgumentParser(['--domain',
+                                           '*.example.com,potato.example.com',
+                                           '--allow-subset-of-names'], {})
+        # The following arguments are added because they have to be defined
+        # in order for arg_parser to run completely. They are not used for the
+        # test.
+        arg_parser.add(
+            None, constants.FORCE_INTERACTIVE_FLAG, action="store_true")
+        arg_parser.add(
+            None, "--non-interactive", dest="noninteractive_mode",
+            action="store_true")
+        arg_parser.add(
+            None, "--staging"
+        )
+        arg_parser.add(None, "--dry-run")
+        arg_parser.add(None, "--csr")
+        arg_parser.add(None, "--must-staple")
+        arg_parser.add(None, "--validate-hooks")
+
+        arg_parser.add(None, "-d", "--domain", dest="domains",
+                       metavar="DOMAIN", action=_DomainsAction)
+        arg_parser.add(None, "--allow-subset-of-names")
+        # with self.assertRaises(errors.Error):
+        #    arg_parser.parse_args()
+
+    def test_parse_args_hosts_and_auto_hosts(self):
+        arg_parser = HelpfulArgumentParser(['--hsts', '--auto-hsts'], {})
+
+        arg_parser.add(
+            None, "--hsts", action="store_true", dest="hsts")
+        arg_parser.add(
+            None, "--auto-hsts", action="store_true", dest="auto_hsts")
+        # The following arguments are added because they have to be defined
+        # in order for arg_parser to run completely. They are not used for the
+        # test.
+        arg_parser.add(
+            None, constants.FORCE_INTERACTIVE_FLAG, action="store_true")
+        arg_parser.add(
+            None, "--non-interactive", dest="noninteractive_mode",
+            action="store_true")
+        arg_parser.add(None, "--staging")
+        arg_parser.add(None, "--dry-run")
+        arg_parser.add(None, "--csr")
+        arg_parser.add(None, "--must-staple")
+        arg_parser.add(None, "--validate-hooks")
+        arg_parser.add(None, "--allow-subset-of-names")
+        with self.assertRaises(errors.Error):
+            arg_parser.parse_args()
 
 
 if __name__ == '__main__':
