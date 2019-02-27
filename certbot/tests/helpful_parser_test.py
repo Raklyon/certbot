@@ -65,6 +65,7 @@ class TestDetermineVerbs(unittest.TestCase):
         self.assertEqual(arg_parser.verb, 'run')
         self.assertEqual(arg_parser.args, [])
 
+
 class TestAdd(unittest.TestCase):
     def test_add_trivial_argument(self):
         arg_parser = HelpfulArgumentParser(['run'], {})
@@ -83,6 +84,32 @@ class TestAdd(unittest.TestCase):
                 help="Key Identifier for External Account Binding")
         parsed_args = arg_parser.parser.parse_args(["--eab-kid", None])
         self.assertIs(parsed_args.eab_kid, None)
+
+
+class TestAddGroup(unittest.TestCase):
+    '''Test add_group method of HelpfulArgumentParser'''
+    def test_add_group_no_input(self):
+        arg_parser = HelpfulArgumentParser(['run'], {})
+        self.assertRaises(TypeError, arg_parser.add_group)
+
+    def test_add_group_topic_not_visible(self):
+        # The user request help on run. A topic that given somewhere in the
+        # args won't be added to the groups in the parser.
+        arg_parser = HelpfulArgumentParser(['--help', 'run'], {})
+        new_group = arg_parser.add_group("auth",
+                                         description="description of auth")
+        self.assertIs(new_group._topic, "auth")
+        self.assertEqual(arg_parser.groups, {})
+
+    def test_add_group_topic_requested_help(self):
+        arg_parser = HelpfulArgumentParser(['--help', 'run'], {})
+        new_group = arg_parser.add_group("run",
+                                         description="description of run")
+        self.assertIs(new_group._topic, "run")
+        self.assertTrue(arg_parser.groups["run"])
+        arg_parser.add_group("certonly", description="description of certonly")
+        with self.assertRaises(KeyError):
+            arg_parser.groups["certonly"]
 
 
 if __name__ == '__main__':
